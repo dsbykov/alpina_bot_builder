@@ -14,7 +14,11 @@ class Bot(models.Model):
 
 
 class Scenario(models.Model):
-    bot = models.ForeignKey(to=Bot, on_delete=models.CASCADE, related_name='scenarios')
+    bot = models.ForeignKey(
+        to=Bot,
+        on_delete=models.CASCADE,
+        related_name='scenarios',
+    )
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
@@ -25,17 +29,31 @@ class Scenario(models.Model):
 
 
 class Step(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE, related_name='steps')
+    scenario = models.ForeignKey(
+        Scenario,
+        on_delete=models.CASCADE,
+        related_name='steps',
+    )
     order = models.PositiveIntegerField()
     prompt = models.TextField()  # Что отправляем в GigaChat
     response_template = models.TextField(blank=True)  # Шаблон ответа
-    next_step_id = models.PositiveIntegerField(null=True, blank=True)  # Переход
+    next_step_id = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='next_step',
+    )
 
     class Meta:
         ordering = ['order']
 
     def __str__(self):
-        return f"Step {self.order} in {self.scenario.title}"
+        return f"""
+            id: {self.pk}
+            Step order: {self.order}
+            prompt: {self.prompt}
+        """
 
 
 class UserSession(models.Model):
@@ -45,4 +63,4 @@ class UserSession(models.Model):
     last_activity = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user_id', 'bot')  # Один сеанс на пользователя и бота
+        unique_together = ('user_id', 'bot')  # Один сеанс на пользователя

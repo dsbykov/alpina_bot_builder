@@ -4,6 +4,8 @@
 Запускает всех активных ботов, зарегистрированных в системе.
 """
 
+from api.telegram_bot import start_bot
+from api.models import Bot
 import asyncio
 import logging
 import os
@@ -17,8 +19,6 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bot_builder.settings')
 django.setup()
 
 # Эти импорты должны быть выполнены только после определения настроек Django
-from api.models import Bot
-from api.telegram_bot import start_bot
 
 logging.basicConfig(
     level=logging.INFO,
