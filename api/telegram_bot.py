@@ -9,32 +9,75 @@ from telegram.ext import Application, MessageHandler, filters, ContextTypes, \
 from .gigachat_client import get_gigachat_response_async
 from .models import Bot, Scenario, Step, UserSession
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 # Обертка для синхронных вызовов ORM
 @sync_to_async
 def get_bot_instance(token):
-    return Bot.objects.filter(token=token, is_active=True).first()
+    logging.debug(f"Получаем бота по токену ...{token[-9:]}")
+    bot = Bot.objects.filter(token=token, is_active=True).first()
+    logging.debug(f"Бот найден: {bot.id}")
+    return bot
 
 
 @sync_to_async
 def get_scenario(bot_id):
+    logging.debug(f"Получаем сценарий для бота {bot_id}")
     return Scenario.objects.filter(bot_id=bot_id).first()
 
 
 @sync_to_async
-def get_steps(scenario_id):
-    return Step.objects.filter(scenario_id=scenario_id).order_by("order")
+def get_steps(scenario: Scenario):
+    logging.debug(f"Получаем шаги для сценария {scenario.id}")
+    return scenario.steps.all().order_by("order")
 
 
 @sync_to_async
 def get_step_by_id(step_id, scenario_id):
-    return Step.objects.filter(order=step_id, scenario_id=scenario_id).first()
+    logging.debug(f"Получаем шаг {step_id} для сценария {scenario_id}")
+    try:
+        return Step.objects.get(id=step_id, scenario_id=scenario_id)
+    except Step.DoesNotExist:
+        logging.warning(
+            f"Шаг {step_id} для сценария {scenario_id} не найден"
+        )
+        return None
+
+
+@sync_to_async
+def get_next_step(current_step: Step, scenario: Scenario):
+    if current_step.next_step_id:
+        logging.debug(
+            f"Следующий шаг: {current_step.next_step_id.pk}"
+        )
+        next_step = Step.objects.get(pk=current_step.next_step_id.pk)
+        logging.debug(f"Следующий шаг определен успешно: {next_step.pk}")
+        return next_step
+    else:
+        logging.warning("Определяю следующий шаг альтернативным способом")
+        return scenario.steps.filter(order__gt=current_step.pk).first()
+
+
+@sync_to_async
+def get_steps_info(scenario: Scenario):
+    """Возвращает: (есть_ли_шаги: bool, первый_шаг: Step или None)."""
+    logging.debug(f"Получаем информацию о шагах для сценария {scenario.id}")
+    steps = scenario.steps.all().order_by("order")
+    if steps.exists():
+        logging.debug(
+            f"Шаги найдены: {steps.count()}"
+        )
+        return True, steps.first()
+    logging.debug("Шаги не найдены")
+    return False, None
 
 
 @sync_to_async
 def get_or_create_session(user_id, bot_instance):
+    logging.debug(
+        f"Получаем или создаём сессию для пользователя {user_id} и бота {bot_instance.id}"
+    )
     return UserSession.objects.get_or_create(
         user_id=user_id,
         bot=bot_instance
@@ -43,18 +86,27 @@ def get_or_create_session(user_id, bot_instance):
 
 @sync_to_async
 def update_session(user_id, bot_instance, next_step_id):
+    logging.info("Обновляем сессию пользователя")
+    logging.debug(
+        f"Пользователь {user_id}\n"
+        f"бот {bot_instance.id}\n"
+        f"следующий шаг {next_step_id}"
+    )
     UserSession.objects.filter(
         user_id=user_id,
         bot=bot_instance
     ).update(
         current_step_id=next_step_id,
-        last_activity=timezone.now()
+        last_activity=timezone.now(),
     )
+    logging.debug('Сессия успешно обновлена')
 
 
 @sync_to_async
 def delete_session(user_id, bot_instance):
+    logging.info("Удаляем сессию пользователя")
     UserSession.objects.filter(user_id=user_id, bot=bot_instance).delete()
+    logging.debug("Сесси пользователя успешно удалена")
 
 
 async def delete_session_handler(update: Update, context: CallbackContext):
@@ -97,6 +149,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Берём первый сценарий и первый шаг
+    logging.debug(
+        f"Берём первый сценарий и первый шаг для бота {bot_instance.id}")
     scenario = await get_scenario(bot_instance.id)
     if not scenario:
         logging.error(f"{chat_id} Ошибка: Нет настроенных сценариев.")
@@ -106,21 +160,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 3. Получаем/создаём сессию пользователя
     session, _ = await get_or_create_session(user_id, bot_instance)
     current_step_id = session.current_step_id
+    logging.debug(f"Текущий шаг: {current_step_id}")
 
     if current_step_id is None:
-        # Начинаем с первого шага сценария
-        steps = await get_steps(scenario.id)
-        steps_list = await sync_to_async(list)(steps)
-        if not steps_list:
+        logging.debug("У пользователя нет незавершённого сценария")
+        has_steps, current_step = await get_steps_info(scenario)
+        if not has_steps:
             logging.error(f"{chat_id} Ошибка: Нет шагов в сценарии.")
             await update.message.reply_text("Нет шагов в сценарии.")
             return
-        current_step = steps_list[0]
+        logging.debug("Записываем в 'текущий' первый шаг сценария")
+        await update_session(user_id, bot_instance, current_step.pk)
+        logging.debug(f"Текущий шаг {current_step}")
     else:
-        # Получаем конкретный шаг по ID (через sync_to_async!)
         current_step = await get_step_by_id(current_step_id, scenario.id)
+        logging.debug(f"Текущий шаг {current_step}")
         if not current_step:
-            logging.error(f"{chat_id} Текущий шаг {current_step} не найден.")
+            logging.error(
+                f"Чат:{chat_id}, текущий шаг {current_step_id} не найден")
             await update.message.reply_text("Ошибка: шаг не найден.")
             # В случае ошибки сбрасываем состояние сессии, чтобы избежать
             # зацикливания
@@ -128,21 +185,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
     # 4. Формируем промт и отправляем в GigaChat
+    # logging.debug(f"Формируем промт для шага {current_step}")
     prompt = current_step.prompt.format(user_message=user_message)
+    logging.debug(f"Промт: {prompt}")
     gigachat_response = await get_gigachat_response_async(prompt)
 
     logging.info(f"{chat_id} Ответ бота: {gigachat_response}")
     await update.message.reply_text(gigachat_response)
 
     # 5. Переходим к следующему шагу
-    next_step_id = current_step.next_step_id
+    logging.info("Переходим к следующему шагу")
+    logging.debug(f"current_step: {current_step}")
+    next_step_id = await get_next_step(current_step, scenario)
     if next_step_id:
         # Обновляем сессию пользователя
-        await update_session(user_id, bot_instance, next_step_id)
+        # logging.info("Обновляем сессию пользователя")
+        # logging.debug(f"Пользователь {user_id}, на шаг {next_step_id}")
+        await update_session(user_id, bot_instance, next_step_id.pk)
     else:
         # Сценарий завершён — удаляем сессию
+        logging.debug(f"Сбрасываем состояние сессии для {user_id}")
         await delete_session(user_id, bot_instance)
+        logging.info("Сценарий завершён")
         await update.message.reply_text("Хотите узнать гороскоп кого-то еще?.")
+
+
+async def error_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Обработчик ошибок бота."""
+    logging.error("Exception while handling an update:",
+                  exc_info=context.error)
+
+    # Дополнительно: можно отправить сообщение пользователю
+    if update and update.effective_user:
+        try:
+            await update.effective_chat.send_message(
+                "Что-то пошло не так..."
+            )
+        except:
+            pass  # Игнорировать ошибки при отправке сообщения об ошибке
 
 
 async def start_bot(token: str):
