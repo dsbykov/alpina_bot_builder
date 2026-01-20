@@ -3,7 +3,8 @@ import logging
 from asgiref.sync import sync_to_async
 from django.utils import timezone
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes, CommandHandler, CallbackContext
+from telegram.ext import Application, MessageHandler, filters, ContextTypes, \
+    CommandHandler, CallbackContext
 
 from .gigachat_client import get_gigachat_response_async
 from .models import Bot, Scenario, Step, UserSession
@@ -70,7 +71,8 @@ async def help_menu(update: Update, context: CallbackContext):
         """Доступные команды:
         /help - Вызов этой справочной информации"
         /start - Выводит приветственное сообщение"
-        /clear - Очищает данные сессии пользователя (сброс текущего шага сценария)"""
+        /clear - Очищает данные сессии пользователя (сброс текущего шага 
+        сценария)"""
     )
 
 
@@ -120,7 +122,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not current_step:
             logging.error(f"{chat_id} Текущий шаг {current_step} не найден.")
             await update.message.reply_text("Ошибка: шаг не найден.")
-            # В случае ошибки сбрасываем состояние сессии, чтобы избежать зацикливания
+            # В случае ошибки сбрасываем состояние сессии, чтобы избежать
+            # зацикливания
             await delete_session(user_id, bot_instance)
             return
 
@@ -149,12 +152,15 @@ async def start_bot(token: str):
 
         application.add_handler(CommandHandler("help", help_menu))
         application.add_handler(CommandHandler("start", send_welcome_message))
-        application.add_handler(CommandHandler("clear", delete_session_handler))
+        application.add_handler(CommandHandler(
+            "clear", delete_session_handler))
 
         await application.initialize()
         await application.updater.initialize()
 
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+        application.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+        )
 
         logging.info(f"Запуск бота с токеном ...{token[-9:]}")
         await application.start()

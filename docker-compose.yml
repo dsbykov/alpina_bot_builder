@@ -1,0 +1,31 @@
+version: '3.5'
+services:
+  app:
+    image: bot-builser-app
+    build: 
+      context: .
+    ports:
+      - "8000:8000"
+    depends_on:
+    - db
+      
+  db:
+    image: "postgres:15-alpine"
+    ports:
+      - "5432:5432"
+    volumes:
+      - "app-postgres:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_DB: django-app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  app-postgres:
+
