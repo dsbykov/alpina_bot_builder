@@ -120,12 +120,11 @@ async def delete_session_handler(update: Update, context: CallbackContext):
 
 async def help_menu(update: Update, context: CallbackContext):
     await update.message.reply_text(
-        """
-Доступные команды:
-/help - Вызов этой справочной информации"
-/start - Выводит приветственное сообщение"
-/clear - Очищает данные сессии пользователя (сброс текущего шага сценария)
-        """
+        """Доступные команды:
+        /help - Вызов этой справочной информации"
+        /start - Выводит приветственное сообщение"
+        /clear - Очищает данные сессии пользователя (сброс текущего шага 
+        сценария)"""
     )
 
 
@@ -180,7 +179,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logging.error(
                 f"Чат:{chat_id}, текущий шаг {current_step_id} не найден")
             await update.message.reply_text("Ошибка: шаг не найден.")
-            logging.debug(f"Сбрасываем состояние сессии для {user_id}")
+            # В случае ошибки сбрасываем состояние сессии, чтобы избежать
+            # зацикливания
             await delete_session(user_id, bot_instance)
             return
 
@@ -237,7 +237,6 @@ async def start_bot(token: str):
         application.add_handler(CommandHandler("start", send_welcome_message))
         application.add_handler(CommandHandler(
             "clear", delete_session_handler))
-        application.add_error_handler(error_handler)
 
         await application.initialize()
         await application.updater.initialize()

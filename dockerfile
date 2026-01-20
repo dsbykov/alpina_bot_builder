@@ -1,0 +1,25 @@
+FROM python:3.12-alpine
+
+WORKDIR /alpina_bot_builder
+
+COPY ./api ./api
+COPY ./bot_builder ./bot_builder
+COPY ./data ./data
+COPY manage.py .
+COPY requirements.txt .
+COPY bot_runner.py .
+
+
+RUN python -m pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+
+# RUN adduser -D appuser
+# USER appuser
+
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1
+
+CMD [ "python", "manage.py", "runserver", "0.0.0.0:8000" ]
+CMD [ "python", "bot_runner.py" ]
