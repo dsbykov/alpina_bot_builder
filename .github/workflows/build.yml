@@ -30,8 +30,8 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: ${{ secrets.BOT_BUILDER_VPS_USERNAME }}
+          key: ${{ secrets.BOT_BUILDER_VPS_SSH_KEY }}
           script: |
             echo "${{ secrets.VPS_GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
