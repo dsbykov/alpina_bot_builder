@@ -27,7 +27,7 @@ jobs:
         run: docker push ghcr.io/${{ github.repository }}:latest
 
       - name: Deploy to VPS
-        uses: ${{ github.repository }}@master
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.BOT_BUILDER_VPS_HOST }}
           username: ${{ secrets.BOT_BUILDER_VPS_USERNAME }}
