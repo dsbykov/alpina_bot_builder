@@ -2,21 +2,33 @@ version: '3.5'
 services:
   app:
     image: ghcr.io/dsbykov/alpina_bot_builder:latest
-    build: 
+    build:
       context: .
     ports:
       - "8000:8000"
     depends_on:
       - db
-      
+    # Передаём переменные окружения для Django
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}  # из .env или окружения
+      # Указываем параметры БД (должны совпадать с settings.py)
+      DB_NAME: mydatabase
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db                   # имя сервиса в Docker-сети
+      DB_PORT: 5432
+    # Монтируем .env, если используете
+    # volumes:
+    #   - ./.env:/app/.env          # путь к .env внутри контейнера
+
   db:
     image: "postgres:15-alpine"
     ports:
       - "5432:5432"
     volumes:
-      - "app-postgres:/var/lib/postgresql/data"
+      - app-postgres:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: django-app
+      POSTGRES_DB: mydatabase
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     healthcheck:
@@ -28,4 +40,3 @@ services:
 
 volumes:
   app-postgres:
-
