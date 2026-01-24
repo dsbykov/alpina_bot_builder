@@ -1,13 +1,13 @@
 version: '3.5'
 services:
   app:
-    image: bot-builser-app
+    image: ghcr.io/dsbykov/alpina_bot_builder:latest
     build: 
       context: .
     ports:
       - "8000:8000"
     depends_on:
-    - db
+      - db
       
   db:
     image: "postgres:15-alpine"
