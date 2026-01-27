@@ -11,6 +11,7 @@ COPY ./api ./api
 COPY ./bot_builder ./bot_builder
 COPY ./data ./data
 COPY manage.py .
+COPY pyproject.toml .
 COPY uv.lock .
 COPY bot_runner.py .
 COPY ./run.sh .
