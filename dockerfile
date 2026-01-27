@@ -15,7 +15,7 @@ COPY uv.lock .
 COPY bot_runner.py .
 COPY ./run.sh .
 
-RUN uv sync --system
+RUN uv sync
 
 
 RUN adduser -D appuser
