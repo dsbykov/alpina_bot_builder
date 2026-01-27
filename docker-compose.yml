@@ -8,6 +8,11 @@ services:
       - "8000:8000"
     depends_on:
       - db
+    healthcheck:  # проверка готовности приложения
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     # Передаём переменные окружения для Django
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}  # из .env или окружения
@@ -40,3 +45,5 @@ services:
 
 volumes:
   app-postgres:
+    driver: bridge
+    

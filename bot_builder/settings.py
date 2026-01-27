@@ -14,7 +14,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv('.env')
+
+if os.path.exists('.env'):
+    load_dotenv('.env')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,9 +30,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'  # из окружения
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 
 # Application definition
@@ -44,6 +46,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'api',
+    'health_check',
+    'health_check.db',              # проверка БД
+    'health_check.cache',           # проверка кэша
+    'health_check.storage',         # проверка хранилища файлов
+    'health_check.contrib.migrations',  # проверка миграций
 ]
 
 MIDDLEWARE = [
@@ -82,11 +89,11 @@ WSGI_APPLICATION = 'bot_builder.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "mydatabase",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
+        "NAME": os.getenv('DB_NAME'),
+        "USER": os.getenv('DB_USER'),
+        "PASSWORD": os.getenv('DB_PASSWORD'),
+        "HOST": os.getenv('DB_HOST'),
+        "PORT": os.getenv('DB_PORT'),
     }
 }
 
@@ -136,4 +143,9 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
 
+}
+
+HEALTH_CHECK = {
+    'DISK_USAGE_MAX': 90,      # % использования диска
+    'MEMORY_MIN': 100,       # МБ свободной памяти
 }
