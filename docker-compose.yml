@@ -17,11 +17,11 @@ services:
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}  # из .env или окружения
       # Указываем параметры БД (должны совпадать с settings.py)
-      DB_NAME: mydatabase
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_HOST: db                   # имя сервиса в Docker-сети
-      DB_PORT: 5432
+      DB_NAME: $(DB_NAME)
+      DB_USER: $(DB_USER)
+      DB_PASSWORD: $(DB_PASSWORD)
+      DB_HOST: $(DB_HOST)                   # имя сервиса в Docker-сети
+      DB_PORT: $(DB_PORT)
     # Монтируем .env, если используете
     # volumes:
     #   - ./.env:/app/.env          # путь к .env внутри контейнера
@@ -33,9 +33,9 @@ services:
     volumes:
       - app-postgres:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: $(DB_NAME)
+      POSTGRES_USER: $(DB_USER)
+      POSTGRES_PASSWORD: $(DB_PASSWORD)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
       interval: 1s
