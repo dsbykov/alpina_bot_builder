@@ -1,5 +1,7 @@
 FROM python:3.12-alpine
 
+RUN apk add --no-cache gcc g++ libpq-dev python3-dev
+
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir uv
 
