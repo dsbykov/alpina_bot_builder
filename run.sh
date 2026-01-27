@@ -3,34 +3,44 @@
 set -e  # Прекращать выполнение при любой ошибке
 
 # Конфигурация логов
-LOG_DIR="/var/log/app"
+LOG_DIR="/tmp/logs"
 mkdir -p "$LOG_DIR"
 exec >> "$LOG_DIR/startup.log" 2>&1
 
-echo "=== Запуск приложения $(date) ==="
+echo "=== Запуск приложения $(date) ===" | tee /dev/fd/2
+
+# Функция для логирования с выводом в консоль
+log() {
+  echo "$1" | tee -a "$LOG_DIR/startup.log" /dev/fd/2
+}
+
+error() {
+  echo "ERROR: $1" | tee -a "$LOG_DIR/startup.log" /dev/fd/2 >&2
+  exit 1
+}
 
 # Проверка наличия переменных окружения
 if [ -z "$DJANGO_SUPERUSER_PASSWORD" ]; then
-    echo "Ошибка: DJANGO_SUPERUSER_PASSWORD не задан!"
+    error "Ошибка: DJANGO_SUPERUSER_PASSWORD не задан!"
     exit 1
 fi
 
 if [ -z "$DJANGO_SUPERUSER_EMAIL" ]; then
-    echo "Ошибка: DJANGO_SUPERUSER_EMAIL не задан!"
+    error "Ошибка: DJANGO_SUPERUSER_EMAIL не задан!"
     exit 1
 fi
 
 if [ -z "$GIGACHAT_AUTH_KEY" ]; then
-    echo "Ошибка: GIGACHAT_AUTH_KEY не задан!"
+    error "Ошибка: GIGACHAT_AUTH_KEY не задан!"
     exit 1
 fi
 
 # 1. Миграции
-echo "Выполняю миграции..."
+log "Выполняю миграции..."
 python manage.py migrate --noinput
 
 # 2. Создание суперпользователя (только если его ещё нет)
-echo "Создаю суперпользователя..."
+log "Создаю суперпользователя..."
 python manage.py shell <<EOF
 from django.contrib.auth.models import User
 if not User.objects.filter(username='admin').exists():
@@ -45,7 +55,7 @@ else:
 EOF
 
 # 3. Запуск Django-сервера (Gunicorn)
-echo "Запускаю Django-сервер..."
+log "Запускаю Django-сервер..."
 gunicorn bot_builder.wsgi:application \
   --bind 127.0.0.1:8000 \
   --workers 4 \
@@ -58,31 +68,31 @@ GUNICORN_PID=$!
 
 
 # 4. Проверка готовности сервера
-echo "Ожидаю готовности Django-сервера..."
+log "Ожидаю готовности Django-сервера..."
 for i in {1..30}; do
   if curl -s http://127.0.0.1:8000/admin/login/ > /dev/null; then
-    echo "Django-сервер готов"
+    log "Django-сервер готов"
     break
   fi
-  echo "Попытка $i/30: сервер не отвечает..."
+  error "Попытка $i/30: сервер не отвечает..."
   sleep 2
 done
 
 if ! curl -s http://127.0.0.1:8000/admin/login/ > /dev/null; then
-  echo "Ошибка: Django-сервер не запустился за 60 секунд"
+  error "Ошибка: Django-сервер не запустился за 60 секунд"
   kill $GUNICORN_PID || true
   exit 1
 fi
 
 # 5. Запуск ботов
-echo "Запускаю ботов..."
+log "Запускаю ботов..."
 nohup python bot_runner.py \
   >> "$LOG_DIR/bot.log" 2>&1 &
 
 BOT_PID=$!
 
 # 6. Мониторинг процессов
-echo "Все сервисы запущены. PID: Gunicorn=$GUNICORN_PID, Бот=$BOT_PID"
+log "Все сервисы запущены. PID: Gunicorn=$GUNICORN_PID, Бот=$BOT_PID"
 
 # Ожидание завершения ботов (опционально)
 # wait $BOT_PID
