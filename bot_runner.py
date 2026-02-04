@@ -4,8 +4,7 @@
 Запускает всех активных ботов, зарегистрированных в системе.
 """
 
-from api.telegram_bot import start_bot
-from api.models import Bot
+
 import asyncio
 import logging
 import os
@@ -17,11 +16,16 @@ from asgiref.sync import sync_to_async
 # Настройка Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bot_builder.settings')
 django.setup()
+# Импорты моделей должны быть выполнены только после определения настроек Django
 
-# Эти импорты должны быть выполнены только после определения настроек Django
+# fmt: off
+# Исправление: отключение автоформатирования участка кода
+from api.telegram_bot import start_bot
+from api.models import Bot
+# fmt: on
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -39,22 +43,34 @@ async def main():
 
     if not active_bots:
         logger.warning("Нет активных ботов в базе данных.")
-        return
 
     logger.info(f"Найдено {len(active_bots)} активных ботов. Запуск...")
 
     # Запускаем всех ботов параллельно
     bot_applications = []
-    for bot in active_bots:
-        app = await start_bot(bot.token)
-        if app:
-            bot_applications.append(app)
+    bot_running = []
 
     # Держим цикл активным
     try:
         while True:
+            # Если бот активирован, но не запустился, запускаем его
+            for bot in active_bots:
+                if bot not in bot_running:
+                    logger.info(f"Запускаю бота {bot.token[:10]}...")
+                    app = await start_bot(bot.token)
+                    if app:
+                        bot_running.append(bot)
+            # Если бот запущен, но дизактивирован, останавливаем его
+            for bot in bot_running:
+                if bot not in active_bots:
+                    logger.info(f"Останавливаю бота {bot.token[:10]}...")
+                    await bot_applications[bot_running.index(bot)].stop()
+                    bot_running.remove(bot)
             await asyncio.sleep(60)  # Проверка раз в минуту
+            logger.info("Проверка активности ботов каждую минуту...")
+
     except (KeyboardInterrupt, CancelledError):
+        # Если выполнение скрипта остановлено с клавиатуры
         logger.info("Остановка ботов по запросу пользователя...")
         for app in bot_applications:
             await app.stop()

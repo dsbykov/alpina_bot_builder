@@ -2,30 +2,44 @@ version: '3.5'
 services:
   app:
     image: bot-builser-app
-    build: 
-      context: .
+    build: .
     ports:
       - "8000:8000"
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+    env_file:
+      - .env
     depends_on:
-    - db
+      db:
+        condition: service_healthy
       
   db:
     image: "postgres:15-alpine"
     ports:
       - "5432:5432"
     volumes:
-      - "app-postgres:/var/lib/postgresql/data"
+      - "db:/var/lib/postgresql/data"
     environment:
-      POSTGRES_DB: django-app
+      POSTGRES_DB: bot_builder_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+      test: ["CMD-SHELL", "pg_isready", "-d", $$POSTGRES_DB, "-U", $$POSTGRES_USER]
       interval: 1s
       timeout: 5s
       retries: 10
       start_period: 30s
 
+  bot:
+    build: .  # или отдельный образ для бота
+    command: python bot_runner.py
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - db
+
 volumes:
-  app-postgres:
+  db:
+    name: "db"
 
