@@ -11,8 +11,8 @@ COPY ./data ./data
 COPY manage.py .
 COPY requirements.txt .
 COPY bot_runner.py .
-# COPY ./run.sh .
-COPY ./run_debug.sh .
+COPY ./run.sh .
+# COPY ./run_debug.sh .
 
 
 RUN python -m pip install --upgrade pip

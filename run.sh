@@ -55,53 +55,47 @@ else:
 EOF
 
 # 3. Запуск Django-сервера (Gunicorn)
-log "Запускаю Django-сервер..."
-# gunicorn bot_builder.wsgi:application \
-#   --bind 127.0.0.1:8000 \
-#   --workers 4 \
-#   --timeout 120 \
-#   --log-file "$LOG_DIR/gunicorn.log" \
-#   --error-logfile "$LOG_DIR/gunicorn_error.log" &
-python manage.py runserver 0.0.0.0:8000
+if [ "$ENVIRONMENT" = "prod" ]; then
+    echo "Запускаю Django-сервер на WSGI..."
+    gunicorn bot_builder.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --timeout 120 \
+    --log-file "$LOG_DIR/gunicorn.log" \
+    --error-logfile "$LOG_DIR/gunicorn_error.log" &
+else
+  if [ "$ENVIRONMENT" = "dev" ]; then
+      echo "Запускаю Django-сервер на отладке..."
+      python manage.py runserver 0.0.0.0:8000
+  else 
+      echo "!!! RUN.SH ERROR: Переменная ENVIRONMENT может быть только 'prod' или 'dev'"
+fi
 
 
 
 # Сохраняем PID сервера
-GUNICORN_PID=$!
+# GUNICORN_PID=$!
 
 
-# 4. Проверка готовности сервера
-log "Ожидаю готовности Django-сервера..."
-for i in {1..30}; do
-  if curl -s http://127.0.0.1:8000/admin/login/ > /dev/null; then
-    log "Django-сервер готов"
-    break
-  fi
-  error "Попытка $i/30: сервер не отвечает..."
-  sleep 2
-done
+# # 4. Проверка готовности сервера
+# log "Ожидаю готовности Django-сервера..."
+# for i in {1..30}; do
+#   if curl -s http://127.0.0.1:8000/admin/login/ > /dev/null; then
+#     log "Django-сервер готов"
+#     break
+#   fi
+#   error "Попытка $i/30: сервер не отвечает..."
+#   sleep 2
+# done
 
-if ! curl -s http://127.0.0.1:8000/admin/login/ > /dev/null; then
-  error "Ошибка: Django-сервер не запустился за 60 секунд"
-  kill $GUNICORN_PID || true
-  exit 1
-fi
+# if ! curl -s http://127.0.0.1:8000/admin/login/ > /dev/null; then
+#   error "Ошибка: Django-сервер не запустился за 60 секунд"
+#   kill $GUNICORN_PID || true
+#   exit 1
+# fi
 
-# 5. Запуск ботов
-log "Запускаю ботов..."
-nohup python bot_runner.py \
-  >> "$LOG_DIR/bot.log" 2>&1 &
+# # 6. Мониторинг процессов
+# log "Все сервисы запущены. PID: Gunicorn=$GUNICORN_PID"
 
-BOT_PID=$!
-
-# 6. Мониторинг процессов
-log "Все сервисы запущены. PID: Gunicorn=$GUNICORN_PID, Бот=$BOT_PID"
-
-# Ожидание завершения ботов (опционально)
-# wait $BOT_PID
-
-# Если нужно останавливать всё при падении бота:
-# while ps -p $BOT_PID > /dev/null; do sleep 1; done
-# kill $GUNICORN_PID
 
 

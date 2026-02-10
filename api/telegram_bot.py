@@ -9,17 +9,37 @@ from telegram.ext import Application, MessageHandler, filters, ContextTypes, \
 
 from .gigachat_client import get_gigachat_response_async
 from .models import Bot, Scenario, Step, UserSession
+from .crypto import decrypt_token
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
-# Обертка для синхронных вызовов ORM
+def find_bot_by_token(token):
+    """Ищет бота по токену."""
+    all_bots = Bot.objects.all()
+    logging.debug(f"Всего ботов в базе: {len(all_bots)}")
+    for bot in all_bots:
+        logging.debug(f"bot: {bot}")
+        logging.debug(f"token: {decrypt_token(bot.token)} == {token}")
+        if decrypt_token(bot.token) == token:
+            logging.debug("bot найден!!!")
+            return bot
+    else:
+        logging.debug("return None")
+        return None
+
+
 @sync_to_async
 def get_bot_instance(token):
-    logging.debug(f"Получаем бота по токену ...{token[-9:]}")
-    bot = Bot.objects.filter(token=token).first()
-    logging.debug(f"Бот найден: {bot.__dict__}")
-    return bot
+    logging.debug(f"Получаем бота по токену {token[:5]}...{token[-5:]}")
+    bot = find_bot_by_token(token)
+    if not bot:
+        logging.error(
+            f"Бот с токеном {token[:5]}...{token[-5:]} не найден в базе")
+        return None
+    else:
+        logging.debug(f"Бот найден: {bot.name}")
+        return bot
 
 
 @sync_to_async
@@ -145,8 +165,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Находим бот по токену
     bot_instance = await get_bot_instance(context.bot.token)
-    if not bot_instance.is_active:
-        logging.error(f"{chat_id} Ошибка: Бот не найден.")
+    if not bot_instance:
+        return
+    elif not bot_instance.is_active:
+        logging.error(f"{chat_id} Ошибка: Бот не дизактивирован.")
         await update.message.reply_text("Бот временно не работает.")
         return
 
@@ -232,8 +254,9 @@ async def error_handler(
 
 async def start_bot(token: str):
     """Запускает один Telegram-бот."""
+    decrypted_token = decrypt_token(token)
     try:
-        application = Application.builder().token(token).build()
+        application = Application.builder().token(decrypted_token).build()
 
         application.add_handler(CommandHandler("help", help_menu))
         application.add_handler(CommandHandler("start", send_welcome_message))
@@ -247,10 +270,12 @@ async def start_bot(token: str):
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
         )
 
-        logging.info(f"Запуск бота с токеном ...{token[-9:]}")
+        logging.info(
+            f"Запуск бота с токеном {decrypted_token[:5]}...{decrypted_token[-5:]}")
         await application.start()
         await application.updater.start_polling()
         return application
     except Exception as e:
-        logging.error(f"Ошибка при запуске бота ...{token[-9:]}: {e}")
+        logging.error(
+            f"Ошибка при запуске бота {decrypted_token[:5]}...{decrypted_token[-5:]}: {e}")
         return None
