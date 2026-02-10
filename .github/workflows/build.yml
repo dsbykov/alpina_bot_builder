@@ -37,7 +37,7 @@ jobs:
 
             docker pull ghcr.io/${{ github.repository }}:latest
 
-            cd /home/ubuntu/django
+            cd /home/user1/django
 
             docker compose down && docker compose up -d
 
