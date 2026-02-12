@@ -67,6 +67,10 @@ if [ -z "$GIGACHAT_AUTH_KEY" ]; then
     echo "Ошибка: GIGACHAT_AUTH_KEY не задан!"
 fi
 
+if [ -z "$DJANGO_SECRET_KEY" ]; then
+     echo "Ошибка: DJANGO_SECRET_KEY не задан!"
+fi
+
 # 1. Миграции
 echo "Выполняю миграции..."
 python manage.py migrate --noinput || {
