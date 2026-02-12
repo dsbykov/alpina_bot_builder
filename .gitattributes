@@ -1,0 +1,11 @@
+# Убедимся, что все shell-скрипты сохраняются с LF
+*.sh text eol=lf
+
+# Остальные текстовые файлы — без автоматической конвертации
+* text=auto
+
+# Дополнительно (если нужно): для Python, JSON, YAML
+*.py text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
