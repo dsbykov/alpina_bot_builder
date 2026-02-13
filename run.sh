@@ -97,14 +97,14 @@ EOF
 if [ "$ENVIRONMENT" = "prod" ]; then
     echo "Запускаю Django-сервер на WSGI..."
     gunicorn bot_builder.wsgi:application \
-        --bind 0.0.0.0:8000 \
+        --bind 127.0.0.1:8000 \
         --workers 4 \
-        --timeout 120 \
-        --log-file "$LOG_DIR/gunicorn.log" \
-        --error-logfile "$LOG_DIR/gunicorn_error.log" &
+        --timeout 120 &
+        # --log-file "$LOG_DIR/gunicorn.log" \
+        # --error-logfile "$LOG_DIR/gunicorn_error.log" &
 elif [ "$ENVIRONMENT" = "dev" ]; then
     echo "Запускаю Django-сервер на отладке..."
-    python manage.py runserver 0.0.0.0:8000
+    python manage.py runserver 127.0.0.1:8000
 else
     echo "!!! RUN.SH ERROR: Переменная ENVIRONMENT может быть только 'prod' или 'dev', а сейчас она равна '$ENVIRONMENT'"
 fi
