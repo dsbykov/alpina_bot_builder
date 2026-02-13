@@ -38,8 +38,8 @@ if '127.0.0.1' in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('127.0.0.1:8000')
 if 'localhost' in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('localhost:8000')
-if ' 45.155.204.67' in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(' 45.155.204.67:8000')
+if '45.155.204.67' in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('45.155.204.67:8000')
 
 print(f"ALLOWED_HOSTS = {ALLOWED_HOSTS}")  # Для логов (можно убрать потом)
 
