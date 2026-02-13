@@ -99,9 +99,9 @@ if [ "$ENVIRONMENT" = "prod" ]; then
     gunicorn bot_builder.wsgi:application \
         --bind 127.0.0.1:8000 \
         --workers 4 \
-        --timeout 120 &
-        # --log-file "$LOG_DIR/gunicorn.log" \
-        # --error-logfile "$LOG_DIR/gunicorn_error.log" &
+        --timeout 120 \
+        --log-file "$LOG_DIR/gunicorn.log" \
+        --error-logfile "$LOG_DIR/gunicorn_error.log" &
 elif [ "$ENVIRONMENT" = "dev" ]; then
     echo "Запускаю Django-сервер на отладке..."
     python manage.py runserver 127.0.0.1:8000
