@@ -1,5 +1,9 @@
 FROM python:3.12-alpine
 
+# Установка зависимостей
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/home/appuser/.local/bin:${PATH}"
 
 RUN addgroup -g 1000 appgroup && \
     adduser -D -u 1000 -G appgroup appuser
@@ -18,11 +22,9 @@ COPY ./run.sh .
 
 
 RUN python -m pip install --upgrade pip --no-warn-script-location
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt --no-warn-script-location
 
 
 EXPOSE 8000
-
-ENV PYTHONUNBUFFERED=1
 
 CMD [ "sh", "run.sh" ]
