@@ -7,12 +7,15 @@ services:
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - GIGACHAT_AUTH_KEY=${GIGACHAT_AUTH_KEY}
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     env_file:
       - .env
     depends_on:
       db:
         condition: service_healthy
-      
+
   db:
     image: "postgres:15-alpine"
     ports:
@@ -31,15 +34,29 @@ services:
       start_period: 30s
 
   bot:
-    build: .  # или отдельный образ для бота
+    image: ghcr.io/dsbykov/alpina_bot_builder:latest
+    build:
+      context: .
     command: python bot_runner.py
     env_file:
       - .env
     depends_on:
-      - app
       - db
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      # - "443:443"  # позже для HTTPS
+    depends_on:
+      - app
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
 
 volumes:
   db:
     name: "db"
-
+  static_volume:
+  media_volume:
