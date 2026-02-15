@@ -28,10 +28,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
+print(f"DEBUG = {DEBUG}")
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS", "127.0.0.1 localhost 0.0.0.0").split(" ")
 
-ALLOWED_HOSTS = []
+# Добавляем явно возможные варианты
+if '127.0.0.1' in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('127.0.0.1:8000')
+if 'localhost' in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('localhost:8000')
+if '45.155.204.67' in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('45.155.204.67:8000')
 
+print(f"ALLOWED_HOSTS = {ALLOWED_HOSTS}")  # Для логов (можно убрать потом)
 
 # Application definition
 
@@ -80,12 +90,15 @@ WSGI_APPLICATION = 'bot_builder.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "bot_builder_db",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "db",
+        "PORT": "5432",
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -122,6 +135,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = '/app/staticfiles'  # ← путь, куда collectstatic копирует всё
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = '/app/media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -131,5 +148,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
-
+    # Опционально: чтобы DRF работал красиво
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ]
 }
+
+# Безопасность при работе за прокси
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = False  # Включить, если будет HTTPS
+USE_X_FORWARDED_HOST = True

@@ -3,22 +3,43 @@ import logging
 from asgiref.sync import sync_to_async
 from django.utils import timezone
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import Application, MessageHandler, filters, ContextTypes, \
     CommandHandler, CallbackContext
 
 from .gigachat_client import get_gigachat_response_async
 from .models import Bot, Scenario, Step, UserSession
+from .crypto import decrypt_token
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
-# Обертка для синхронных вызовов ORM
+def find_bot_by_token(token):
+    """Ищет бота по токену."""
+    all_bots = Bot.objects.all()
+    logging.debug(f"Всего ботов в базе: {len(all_bots)}")
+    for bot in all_bots:
+        logging.debug(f"bot: {bot}")
+        logging.debug(f"token: {decrypt_token(bot.token)} == {token}")
+        if decrypt_token(bot.token) == token:
+            logging.debug("bot найден!!!")
+            return bot
+    else:
+        logging.debug("return None")
+        return None
+
+
 @sync_to_async
 def get_bot_instance(token):
-    logging.debug(f"Получаем бота по токену ...{token[-9:]}")
-    bot = Bot.objects.filter(token=token, is_active=True).first()
-    logging.debug(f"Бот найден: {bot.id}")
-    return bot
+    logging.debug(f"Получаем бота по токену {token[:5]}...{token[-5:]}")
+    bot = find_bot_by_token(token)
+    if not bot:
+        logging.error(
+            f"Бот с токеном {token[:5]}...{token[-5:]} не найден в базе")
+        return None
+    else:
+        logging.debug(f"Бот найден: {bot.name}")
+        return bot
 
 
 @sync_to_async
@@ -49,14 +70,14 @@ def get_step_by_id(step_id, scenario_id):
 def get_next_step(current_step: Step, scenario: Scenario):
     if current_step.next_step_id:
         logging.debug(
-            f"Следующий шаг: {current_step.next_step_id.pk}"
+            f"Следующий шаг: {current_step.next_step_id.order}"
         )
-        next_step = Step.objects.get(pk=current_step.next_step_id.pk)
-        logging.debug(f"Следующий шаг определен успешно: {next_step.pk}")
+        next_step = Step.objects.get(order=current_step.next_step_id.order)
+        logging.debug(f"Следующий шаг определен успешно: {next_step.order}")
         return next_step
     else:
         logging.warning("Определяю следующий шаг альтернативным способом")
-        return scenario.steps.filter(order__gt=current_step.pk).first()
+        return scenario.steps.filter(order__gt=current_step.order).first()
 
 
 @sync_to_async
@@ -76,7 +97,8 @@ def get_steps_info(scenario: Scenario):
 @sync_to_async
 def get_or_create_session(user_id, bot_instance):
     logging.debug(
-        f"Получаем или создаём сессию для пользователя {user_id} и бота {bot_instance.id}"
+        f"Получаем или создаём сессию для пользователя {user_id} и \
+        бота{bot_instance.id}"
     )
     return UserSession.objects.get_or_create(
         user_id=user_id,
@@ -135,17 +157,19 @@ async def send_welcome_message(update: Update, context: CallbackContext):
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
+    user_input = update.message.text
     chat_id = update.message.chat_id
     user_id = update.effective_user.id  # Уникальный ID пользователя Telegram
 
-    logging.info(f"{chat_id} Написал боту: {user_message}")
+    logging.info(f"{chat_id} Написал боту: {user_input}")
 
     # Находим бот по токену
     bot_instance = await get_bot_instance(context.bot.token)
     if not bot_instance:
-        logging.error(f"{chat_id} Ошибка: Бот не найден.")
-        await update.message.reply_text("Бот не найден.")
+        return
+    elif not bot_instance.is_active:
+        logging.error(f"{chat_id} Ошибка: Бот не дизактивирован.")
+        await update.message.reply_text("Бот временно не работает.")
         return
 
     # Берём первый сценарий и первый шаг
@@ -186,7 +210,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 4. Формируем промт и отправляем в GigaChat
     # logging.debug(f"Формируем промт для шага {current_step}")
-    prompt = current_step.prompt.format(user_message=user_message)
+    prompt = current_step.prompt.format(user_input=user_input)
     logging.debug(f"Промт: {prompt}")
     gigachat_response = await get_gigachat_response_async(prompt)
 
@@ -224,14 +248,15 @@ async def error_handler(
             await update.effective_chat.send_message(
                 "Что-то пошло не так..."
             )
-        except:
-            pass  # Игнорировать ошибки при отправке сообщения об ошибке
+        except TelegramError as e:  # Ловим только ошибки Telegram API
+            logging.error(f"Ошибка отправки сообщения: {e}")
 
 
 async def start_bot(token: str):
     """Запускает один Telegram-бот."""
+    decrypted_token = decrypt_token(token)
     try:
-        application = Application.builder().token(token).build()
+        application = Application.builder().token(decrypted_token).build()
 
         application.add_handler(CommandHandler("help", help_menu))
         application.add_handler(CommandHandler("start", send_welcome_message))
@@ -245,10 +270,12 @@ async def start_bot(token: str):
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
         )
 
-        logging.info(f"Запуск бота с токеном ...{token[-9:]}")
+        logging.info(
+            f"Запуск бота с токеном {decrypted_token[:5]}...{decrypted_token[-5:]}")
         await application.start()
         await application.updater.start_polling()
         return application
     except Exception as e:
-        logging.error(f"Ошибка при запуске бота ...{token[-9:]}: {e}")
+        logging.error(
+            f"Ошибка при запуске бота {decrypted_token[:5]}...{decrypted_token[-5:]}: {e}")
         return None
