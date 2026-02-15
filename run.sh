@@ -78,14 +78,7 @@ python manage.py migrate --noinput || {
     exit 1
 }
 
-# 2. Сбор статики
-echo "Собираю статические файлы..."
-python manage.py collectstatic --noinput || {
-    echo "Ошибка: Не удалось собрать статику!"
-    exit 1
-}
-
-# 3. Создание суперпользователя (только если его ещё нет)
+# 2. Создание суперпользователя (только если его ещё нет)
 echo "Создаю суперпользователя..."
 python manage.py shell <<EOF
 from django.contrib.auth.models import User

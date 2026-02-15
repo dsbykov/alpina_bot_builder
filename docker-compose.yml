@@ -56,6 +56,6 @@ services:
       - media_volume:/app/media
 
 volumes:
-  db_data:
+  db:
   static_volume:
   media_volume:
