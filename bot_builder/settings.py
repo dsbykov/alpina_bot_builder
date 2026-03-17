@@ -157,5 +157,7 @@ REST_FRAMEWORK = {
 
 # Безопасность при работе за прокси
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False  # Включить, если будет HTTPS
+SECURE_SSL_REDIRECT = True  # Включить, если будет HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 USE_X_FORWARDED_HOST = True
