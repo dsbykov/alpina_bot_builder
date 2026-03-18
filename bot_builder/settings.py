@@ -92,10 +92,10 @@ WSGI_APPLICATION = 'bot_builder.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "bot_builder_db",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "db",
+        "NAME": os.environ.get("POSTGRES_DB", "bot_builder_db"),
+        "USER": os.environ.get("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
+        "HOST": os.environ.get("POSTGRES_HOST", "db"),
         "PORT": "5432",
     }
 }
@@ -156,8 +156,22 @@ REST_FRAMEWORK = {
 }
 
 # Безопасность при работе за прокси
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True  # Включить, если будет HTTPS
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-USE_X_FORWARDED_HOST = True
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+print('DEBUG LOG: ENVIRONMENT =', ENVIRONMENT)
+
+# Настройки безопасности по умолчанию
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = None
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+USE_X_FORWARDED_HOST = False
+
+# Применяем настройки только в продакшене
+if ENVIRONMENT == "prod":
+    print('DEBUG LOG: Enabling production security settings')
+
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    USE_X_FORWARDED_HOST = True
