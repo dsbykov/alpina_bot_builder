@@ -159,12 +159,6 @@ REST_FRAMEWORK = {
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 print('DEBUG LOG: ENVIRONMENT =', ENVIRONMENT)
 
-# Настройки безопасности по умолчанию
-SECURE_SSL_REDIRECT = False
-SECURE_PROXY_SSL_HEADER = None
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-USE_X_FORWARDED_HOST = False
 
 # Применяем настройки только в продакшене
 if ENVIRONMENT == "prod":
@@ -175,3 +169,10 @@ if ENVIRONMENT == "prod":
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     USE_X_FORWARDED_HOST = True
+else:
+    # Настройки безопасности по умолчанию
+    SECURE_SSL_REDIRECT = False
+    SECURE_PROXY_SSL_HEADER = None
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    USE_X_FORWARDED_HOST = False
