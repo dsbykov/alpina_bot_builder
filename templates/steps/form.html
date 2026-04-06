@@ -1,0 +1,120 @@
+<!-- templates/steps/form.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if step %}Редактировать{% else %}Новый{% endif %} шаг</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1>{% if step %}Редактировать шаг{% else %}Новый шаг{% endif %}</h1>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+
+            <!-- Order -->
+            <div class="mb-3">
+                <label for="order" class="form-label">Порядковый номер</label>
+                <input 
+                    type="number" 
+                    name="order" 
+                    id="order" 
+                    class="form-control" 
+                    required 
+                    min="1" 
+                    value="{{ step.order|default:next_order }}">
+                <div class="form-text text-muted">
+                    Автоматически присвоен порядковый номер: {{ next_order }}
+                </div>
+            </div>
+
+            <!-- Prompt -->
+            <div class="mb-3">
+                <label for="prompt" class="form-label">Запрос к GigaChat (prompt)</label>
+                <textarea name="prompt" id="prompt" class="form-control" rows="3" required>{{ step.prompt|default:'' }}</textarea>
+            </div>
+
+            <!-- Response Template -->
+            <div class="mb-3">
+                <label for="response_template" class="form-label">Шаблон ответа (Telegram)</label>
+                <textarea name="response_template" id="response_template" class="form-control" rows="3">{{ step.response_template|default:'' }}</textarea>
+            </div>
+
+            <!-- Next Step -->
+            <div class="mb-3">
+                <label for="next_step_id" class="form-label">Следующий шаг</label>
+                <select name="next_step_id" id="next_step_id" class="form-select">
+                    <option value="">— Конец сценария —</option>
+                    {% for other_step in scenario.steps.all %}
+                        <option value="{{ other_step.id }}" {% if step.next_step_id == other_step %}selected{% endif %}>
+                            {{ other_step.order }}. {{ other_step.prompt|truncatechars:50 }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text text-muted">
+                    Куда перейти после этого шага
+                </div>
+            </div>
+
+            <!-- Выбор сценария -->
+            <div class="mb-3">
+                <label for="scenario_select" class="form-label">Выберите сценарий</label>
+                <select name="scenario_id" id="scenario_select" class="form-select" required>
+                    <option value="">— Выберите сценарий —</option>
+                    {% for s in available_scenarios %}
+                        <option value="{{ s.id }}"
+                                {% if scenario.id == s.id %}selected{% endif %}>
+                            {{ s.bot.name }} → {{ s.title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Кнопки -->
+            <button type="submit" class="btn btn-primary">{% if step %}Сохранить{% else %}Создать{% endif %}</button>
+            <a href="{% url 'step_list' %}?scenario_id={{ scenario.id }}" class="btn btn-secondary">Отмена</a>
+
+            <!-- Удаление -->
+            {% if step %}
+                <a href="#" 
+                   class="btn btn-outline-danger float-end" 
+                   data-bs-toggle="modal" 
+                   data-bs-target="#deleteModal">
+                   Удалить шаг
+                </a>
+            {% endif %}
+        </form>
+
+        <hr>
+        <a href="/" class="btn btn-link">← На главную</a>
+    </div>
+
+    <!-- Modal удаления -->
+    {% if step %}
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Удалить шаг "{{ scenario.prompt }}"?</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Это действие нельзя отменить. Этот шаг будет удален.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form method="post" action="{% url 'scenario_delete' scenario.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Удалить навсегда</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

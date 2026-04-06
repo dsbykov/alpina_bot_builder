@@ -1,0 +1,96 @@
+<!-- templates/scenarios/form.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if scenario %}Редактировать{% else %}Новый{% endif %} сценарий</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1>{% if scenario %}Редактировать сценарий{% else %}Новый сценарий{% endif %}</h1>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="bot_id" value="{{ bot.id }}">
+
+            <!-- Выбор бота -->
+            <div class="mb-3">
+                <label for="bot_select" class="form-label">Бот</label>
+                <select name="bot_id" id="bot_select" class="form-select">
+                    <option value="">— Не выбран —</option>
+                    {% for b in available_bots %}
+                        <option value="{{ b.id }}" {% if bot.id == b.id %}selected{% endif %}>
+                            {{ b.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Название -->
+            <div class="mb-3">
+                <label for="title" class="form-label">Название</label>
+                <input type="text" 
+                       name="title" 
+                       id="title" 
+                       class="form-control" 
+                       required value="{{ scenario.title|default:'' }}">
+            </div>
+
+            <!-- Описание -->
+            <div class="mb-3">
+                <label for="description" class="form-label">Описание</label>
+                <textarea name="description" 
+                          id="description" 
+                          class="form-control" 
+                          rows="3">{{ scenario.description|default:'' }}</textarea>
+            </div>
+
+            <!-- Кнопки -->
+            <button type="submit" 
+                    class="btn btn-primary">
+                        {% if scenario %}Сохранить{% else %}Создать{% endif %}</button>
+            <a href="{% url 'scenario_list' %}?bot_id={{ bot.id }}" class="btn btn-secondary">Отмена</a>
+
+            <!-- Удаление -->
+            {% if scenario %}
+                <a href="#" 
+                   class="btn btn-outline-danger float-end" 
+                   data-bs-toggle="modal" 
+                   data-bs-target="#deleteModal">
+                   Удалить сценарий
+                </a>
+            {% endif %}
+        </form>
+
+        <hr>
+        <a href="/" class="btn btn-link">← На главную</a>
+    </div>
+
+    <!-- Modal удаления -->
+    {% if scenario %}
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Удалить сценарий "{{ scenario.title }}"?</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Это действие нельзя отменить. Все связанные со сценарием шаги будут удалены тоже.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form method="post" action="{% url 'scenario_delete' scenario.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Удалить навсегда</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

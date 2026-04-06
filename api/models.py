@@ -1,5 +1,6 @@
 # models.py
 from django.db import models
+from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
 import logging
 from .crypto import get_encryption_key, encrypt_token, decrypt_token
@@ -13,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 class Bot(models.Model):
     name = models.CharField(max_length=100, verbose_name="Имя бота")
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+    )
     description = models.TextField(blank=True)
     # Хранится в зашифрованном виде
     token = models.TextField(verbose_name="Telegram Bot Token", max_length=255)
@@ -69,8 +75,14 @@ class Scenario(models.Model):
         to=Bot,
         on_delete=models.CASCADE,
         related_name='scenarios',
+        null=True,
     )
     title = models.CharField(max_length=100)
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+    )
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлен")
@@ -78,12 +90,21 @@ class Scenario(models.Model):
     def __str__(self):
         return f"{self.title} ({self.bot.name})"
 
+    class Meta:
+        verbose_name = "Сценарий"
+        verbose_name_plural = "Сценарии"
+
 
 class Step(models.Model):
     scenario = models.ForeignKey(
         Scenario,
         on_delete=models.CASCADE,
         related_name='steps',
+    )
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
     )
     order = models.PositiveIntegerField()
     prompt = models.TextField()  # Что отправляем в GigaChat
@@ -98,6 +119,8 @@ class Step(models.Model):
 
     class Meta:
         ordering = ['order']
+        verbose_name = "Шаг"
+        verbose_name_plural = "Шаги"
 
     def __str__(self):
         return f"""

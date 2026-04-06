@@ -1,0 +1,142 @@
+<!-- templates/bots/form.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if bot %}Редактировать{% else %}Новый бот{% endif %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .readonly {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1>{% if bot %}🔧 Редактировать бота{% else %}➕ Новый бот{% endif %}</h1>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- ID (только для просмотра) -->
+            {% if bot %}
+                <div class="mb-3">
+                    <label class="form-label">ID</label>
+                    <div class="readonly">{{ bot.id }}</div>
+                </div>
+            {% endif %}
+
+            <!-- Имя -->
+            <div class="mb-3">
+                <label for="name" class="form-label">Название</label>
+                <input type="text"
+                       name="name"
+                       id="name"
+                       class="form-control"
+                       required
+                       value="{{ bot.name|default:'' }}">
+            </div>
+
+            <!-- Описание -->
+            <div class="mb-3">
+                <label for="description" class="form-label">Описание</label>
+                <textarea name="description"
+                          id="description"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Например: Составляет школьный гороскоп">{{ bot.description|default:'' }}</textarea>
+            </div>
+
+            <!-- Token -->
+            <div class="mb-3">
+                <label for="token" class="form-label">Токен Telegram</label>
+                <input type="text"
+                       name="token"
+                       id="token"
+                       class="form-control"
+                       required
+                       value="{{ bot.token|default:'' }}"
+                       autocomplete="off">
+                <div class="form-text text-muted">Внимание: токен хранится в зашифрованном виде.</div>
+            </div>
+
+            <!-- Is Active -->
+            <div class="mb-3 form-check">
+                <input type="checkbox"
+                       name="is_active"
+                       id="is_active"
+                       class="form-check-input"
+                       {% if bot.is_active %}checked{% endif %}>
+                <label for="is_active" class="form-check-label">Активен</label>
+            </div>
+
+            <!-- Дата создания -->
+            {% if bot %}
+                <div class="mb-3">
+                    <label class="form-label">Создан</label>
+                    <div class="readonly">
+                        {{ bot.created_at|date:"d E Y, H:i" }} ({{ bot.created_at|timesince }} назад)
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Дата измененния -->
+            {% if bot %}
+                <div class="mb-3">
+                    <label class="form-label">Последнее обновление</label>
+                    <div class="readonly">
+                        {{ bot.updated_at|date:"d E Y, H:i" }} ({{ bot.updated_at|timesince }} назад)
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Кнопки -->
+            <button type="submit" class="btn btn-primary">
+                {% if bot %}💾 Сохранить изменения{% else %}✅ Создать бота{% endif %}
+            </button>
+            <a href="{% url 'bot_list' %}" class="btn btn-secondary">Отмена</a>
+
+            <!-- Удаление -->
+            {% if bot %}
+                <a href="#" class="btn btn-outline-danger float-end" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    Удалить бота
+                </a>
+            {% endif %}
+        </form>
+
+        <hr>
+        <a href="/" class="btn btn-link">← На главную</a>
+    </div>
+
+    <!-- Modal удаления -->
+    {% if bot %}
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Удалить бота "{{ bot.name }}"?</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Это действие нельзя отменить. Все сценарии и шаги будут удалены.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form method="post" action="{% url 'bot_delete' bot.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Удалить навсегда</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

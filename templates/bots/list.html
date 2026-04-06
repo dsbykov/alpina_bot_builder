@@ -1,0 +1,41 @@
+<!-- templates/bots/list.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мои боты</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1>🤖 Мои боты</h1>
+
+        <a href="{% url 'bot_create' %}" class="btn btn-success mb-3">+ Добавить бота</a>
+
+        {% if bots %}
+            <div class="row">
+                {% for bot in bots %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ bot.name }}</h5>
+                                <p class="card-text">
+                                    <small>Токен: {{ bot.token|slice:":10" }}...</small><br>
+                                    <strong>Сценариев:</strong> {{ bot.scenarios.count }}
+                                </p>
+                                <a href="{% url 'scenario_list' %}?bot_id={{ bot.id }}" class="btn btn-outline-primary btn-sm">Сценарии</a>
+                                <a href="{% url 'bot_update' bot.id %}" class="btn btn-outline-secondary btn-sm">Редактировать</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>У вас пока нет ботов. <a href="{% url 'bot_create' %}">Создайте первый!</a></p>
+        {% endif %}
+
+        <hr>
+        <a href="/" class="btn btn-link">← На главную</a>
+    </div>
+</body>
+</html>
