@@ -45,49 +45,50 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🤖 Alpina Bot Builder</h1>
-            <p>Создавайте и управляйте Telegram-ботами с помощью конструктора</p>
-        </div>
+        {% if user.is_authenticated %}
+            <div class="header">
+                <h1>🤖 Alpina Bot Builder</h1>
+                <p>Создавайте и управляйте Telegram-ботами с помощью конструктора</p>
+            </div>
 
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-4">
-                <div class="card text-center p-4">
-                    <h3>🤖 Боты</h3>
-                    <p>Просмотр и создание ботов</p>
-                    <a href="{% url 'bot_list' %}" class="btn btn-primary">Перейти</a>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4">
+                    <div class="card text-center p-4">
+                        <h3>🤖 Боты</h3>
+                        <p>Просмотр и создание ботов</p>
+                        <a href="{% url 'bot_list' %}" class="btn btn-primary">Перейти</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center p-4">
+                        <h3>📝 Сценарии</h3>
+                        <p>Настройте диалоговые сценарии</p>
+                        <a href="{% url 'scenario_list' %}" class="btn btn-primary">Перейти</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center p-4">
+                        <h3>🔄 Шаги</h3>
+                        <p>Управляйте шагами сценариев</p>
+                        <a href="{% url 'step_list' %}" class="btn btn-primary">Перейти</a>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card text-center p-4">
-                    <h3>📝 Сценарии</h3>
-                    <p>Настройте диалоговые сценарии</p>
-                    <a href="{% url 'scenario_list' %}" class="btn btn-primary">Перейти</a>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card text-center p-4">
-                    <h3>🔄 Шаги</h3>
-                    <p>Управляйте шагами сценариев</p>
-                    <a href="{% url 'step_list' %}" class="btn btn-primary">Перейти</a>
-                </div>
-            </div>
-        </div>
 
-        <!-- Информация о пользователе -->
-        <div class="mt-5 text-center">
-            {% if user.is_authenticated %}
+            <!-- Информация о пользователе -->
+            <div class="mt-5 text-center">
                 <p><strong>Привет, {{ user.first_name }}!</strong></p>
                 <form action="{% url 'logout' %}" method="post" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-light btn-sm">Выйти</button>
                 </form>
-            {% else %}
+            </div>
+        {% else %}
+            <div class="mt-5 text-center">
                 <p>Для доступа войдите через Яндекс</p>
                 <a href="/auth/login/yandex-oauth2/" class="btn btn-outline-light">Войти</a>
-            {% endif %}
-        </div>
-
+            </div>
+        {% endif %}
         <div class="footer">
             <p>© 2026 Alpina Bot Builder | Учебный проект</p>
         </div>

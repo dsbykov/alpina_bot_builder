@@ -17,6 +17,7 @@ WORKDIR /app
 COPY ./api ./api
 COPY ./bot_builder ./bot_builder
 COPY ./data ./data
+COPY ./templates ./templates
 COPY manage.py .
 COPY requirements.txt .
 COPY bot_runner.py .
