@@ -161,12 +161,26 @@ server_name your-domain.ru;  # ← ваш домен
 
 ## 🧪 Доступные эндпоинты (API)
 
+### Боты
+
 * GET /api/bots/ — список ботов
-* POST /api/bots/ — создать бота
-* GET /api/scenarios/ — сценарии
-* POST /api/scenarios/ — создать сценарий
-* GET /api/steps/ — список шагов
-* POST /api/steps/ — создать шаг
+* POST /api/bots/create/ — создать нового бота
+* POST /api/bots/<int:pk>/edit/ - Изменить данные бота
+* POST /api/bots/<int:pk>/delete/ - Удалить бота (коскадно удаляет связанные сценарии и шаги)
+
+### Сценарии
+
+* GET /api/scenarios/ — Список сценарииев
+* POST /api/scenarios/create/ — Создать сценарий
+* POST /api/scenarios/<int:pk>/edit/ - Изменить данные сценария
+* POST /api/scenarios/<int:pk>/delete/ - Удалить сценарий (коскадно удаляет связанные шаги)
+
+### Шаги
+
+* GET /api/steps/ — Список шагов
+* POST /api/steps/create/ — Создать шаг
+* POST /api/steps/<int:pk>/edit/ - Изменить данные шага
+* POST /api/steps/<int:pk>/delete/ - Удалить шаг
 
 ---
 
@@ -174,10 +188,10 @@ server_name your-domain.ru;  # ← ваш домен
 
 ```bash
 alpina_bot_builder/
-├── bot_builder/        # Настройки Django
-├── api/                # REST API
-├── bots/               # Логика ботов
+├── bot_builder/        # Настройки Django 
+├── api/                # REST API + логика ботов
 ├── bot_runner.py       # Запуск обработчика Telegram
+├── templates           # WEB интерфейс
 ├── docker-compose.yml
 ├── nginx.conf
 ├── requirements.txt

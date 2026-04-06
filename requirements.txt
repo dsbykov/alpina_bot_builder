@@ -28,3 +28,4 @@ typing-extensions==4.15.0
 typing-inspection==0.4.2
 tzdata==2025.3
 uv==0.9.27
+social-auth-app-django

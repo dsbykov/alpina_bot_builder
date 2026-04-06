@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'social_django',
     'api',
 ]
 
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'bot_builder.urls'
@@ -71,7 +73,7 @@ ROOT_URLCONF = 'bot_builder.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -152,19 +154,19 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
-    ]
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
 }
 
 # Безопасность при работе за прокси
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 print('DEBUG LOG: ENVIRONMENT =', ENVIRONMENT)
 
-# Настройки безопасности по умолчанию
-SECURE_SSL_REDIRECT = False
-SECURE_PROXY_SSL_HEADER = None
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-USE_X_FORWARDED_HOST = False
 
 # Применяем настройки только в продакшене
 if ENVIRONMENT == "prod":
@@ -175,3 +177,50 @@ if ENVIRONMENT == "prod":
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     USE_X_FORWARDED_HOST = True
+
+else:
+    CSRF_COOKIE_SAMESITE = 'Lax'
+
+    # Настройки безопасности по умолчанию
+    SECURE_SSL_REDIRECT = False
+    SECURE_PROXY_SSL_HEADER = None
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    USE_X_FORWARDED_HOST = False
+
+
+# Для работы с Yandex OAuth
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.yandex.YandexOAuth2',
+    'django.contrib.auth.backends.ModelBackend',  # стандартная авторизация
+)
+
+SOCIAL_AUTH_YANDEX_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_YANDEX_OAUTH2_KEY')
+SOCIAL_AUTH_YANDEX_OAUTH2_SECRET = os.getenv(
+    'SOCIAL_AUTH_YANDEX_OAUTH2_SECRET')
+
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'home'  # Куда редиректить после входа
+SOCIAL_AUTH_LOGIN_URL = '/auth/login/yandex-oauth2/'  # Страница входа
+
+LOGOUT_REDIRECT_URL = '/'  # Куда редиректить после выхода
+
+# Автоматически создавать пользователя при первом входе
+SOCIAL_AUTH_USER_MODEL = 'auth.User'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'home'
+
+# Сохранять email из профиля
+SOCIAL_AUTH_YANDEX_OAUTH2_SCOPE = ['login:email', 'login:info']
+
+# Маппинг email → username
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    'bot_builder.pipeline.save_user_details',
+)
