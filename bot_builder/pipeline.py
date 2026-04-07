@@ -1,9 +1,5 @@
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
 
@@ -21,41 +17,44 @@ def save_user_details(backend, user, response, *args, **kwargs):
         # }
 
         changed = False
-        logger.debug('Созранение данных из Яндекс АйДи')
+        logger.debug('Сохранение данных из Яндекс АйДи')
         # ← ключевая строка
-        logger.info(f'Полный ответ от Яндекса: {response}')
+
+        first_name = response.get('first_name')
+        last_name = response.get('last_name')
 
         # Сохраняем имя
-        first_name = response.get('first_name')
-        logger.debug(f"Имя из ответа: {first_name}")
-        logger.debug(f"Имя из модели: {user.first_name}")
+        logger.info(f"Пользователь '{first_name} {last_name}'"
+                    " успешно авторизован")
         if first_name and not user.first_name:
             user.first_name = first_name
             changed = True
-            logger.debug(f"Имя сохранено: {first_name}")
+            logger.debug(f"Добавляем имя пользователя: {first_name}")
 
         # Сохраняем фамилию
-        last_name = response.get('last_name')
+
         logger.debug(f"Фамилия из ответа: {last_name}")
-        logger.debug(f"Фамилия из модели: {user.last_name}")
         if last_name and not user.last_name:
             user.last_name = last_name
             changed = True
-            logger.debug(f"Фамилия сохранена: {last_name}")
+            logger.debug(f"Добавляем фамилию "
+                         "пользователя: {last_name}")
 
         # Обновляем, чтобы было всегда актуальное имя
         if user.first_name != first_name:
             user.first_name = first_name or user.first_name
             changed = True
-            logger.debug(f'обновлем данные из яндекса {first_name}')
+            logger.debug(f'Обновлем имя пользователя {first_name}')
 
         if user.last_name != last_name:
             user.last_name = last_name or user.last_name
             changed = True
-            logger.debug(f'обновлем данные из яндекса {last_name}')
+            logger.debug(f'Обновлем фамилию пользователя {last_name}')
 
         if changed:
             user.save()
-            logger.debug('Данные из яндекса сохранены')
+            logger.debug(f'Учетные данные пользователя {first_name} '
+                         f'{last_name} сохранены')
         else:
-            logger.debug('Изменений в данных пользователя нет')
+            logger.debug(f'Учетные данные пользователя {first_name} '
+                         f'{last_name} не требуют изменений')

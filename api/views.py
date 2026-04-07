@@ -12,11 +12,6 @@ from django.contrib import messages
 from django.urls import reverse
 from django.db import models
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
 
@@ -89,6 +84,7 @@ class StepListCreateView(generics.ListCreateAPIView):
 # --- BOTS ---
 @login_required
 def bot_list(request):
+    logger.debug('GET все боты пользователя')
     bots = Bot.objects.filter(owner=request.user)
     return render(request, 'bots/list.html', {'bots': bots})
 
@@ -96,10 +92,12 @@ def bot_list(request):
 @login_required
 def bot_create(request):
     if request.method == 'POST':
+        logger.debug('POST новый бот')
         name = request.POST.get('name')
         token = request.POST.get('token')
         Bot.objects.create(name=name, token=token, owner=request.user)
         return redirect('bot_list')
+    logger.debug('GET форма нового бота')
     return render(request, 'bots/form.html')
 
 
@@ -107,6 +105,7 @@ def bot_create(request):
 def bot_update(request, pk):
     bot = get_object_or_404(Bot, pk=pk, owner=request.user)
     if request.method == 'POST':
+        logger.debug(f'POST обновление бота {pk}')
         bot.name = request.POST.get('name')
         bot.description = request.POST.get('description')
         # будет автоматически зашифрован в save()
@@ -115,6 +114,7 @@ def bot_update(request, pk):
         bot.save()
         messages.success(request, f'Бот "{bot.name}" успешно обновлён.')
         return redirect('bot_list')
+    logger.debug(f'GET форма обновления бота {pk}')
     return render(request, 'bots/form.html', {'bot': bot})
 
 
@@ -122,10 +122,12 @@ def bot_update(request, pk):
 def bot_delete(request, pk):
     bot = get_object_or_404(Bot, pk=pk, owner=request.user)
     if request.method == 'POST':
+        logger.debug(f'POST удаление бота {pk}')
         name = bot.name
         bot.delete()
         messages.success(request, f'Бот "{name}" удалён.')
         return redirect('bot_list')
+    logger.warning(f'Попытка удалить бота методом отличным от POST.')
     return redirect('bot_list')
 
 
@@ -136,13 +138,16 @@ def scenario_list(request):
 
     # Если bot_id есть — фильтруем по нему
     if bot_id:
-        logger.info(f'GET все сценарии связанные с ботом {bot_id}')
+        logger.debug(f'GET все сценарии связанные с ботом {bot_id}')
         bot = get_object_or_404(Bot, id=bot_id, owner=request.user)
         scenarios = Scenario.objects.filter(bot=bot)
-        return render(request, 'scenarios/list.html', {'scenarios': scenarios, 'bot': bot})
+        return render(request,
+                      'scenarios/list.html',
+                      {'scenarios': scenarios, 'bot': bot}
+                      )
 
     # Если нет — показываем все сценарии пользователя
-    logger.info('GET все сценарии пользователя')
+    logger.debug('GET все сценарии пользователя')
     # bots = Bot.objects.filter(owner=request.user)
     scenarios = Scenario.objects.filter(
         owner=request.user).select_related('bot')
@@ -166,9 +171,9 @@ def scenario_create(request):
     if request.method == 'POST':
         selected_bot_id = request.POST.get('bot_id')
         title = request.POST.get('title')
-        description = request.POST.get('description')
 
         if not title:
+            logger.warning('POST сценарий без названия')
             messages.error(request, "Введите название сценария.")
             return render(request, 'scenarios/form.html', {
                 'available_bots': available_bots,
@@ -178,24 +183,22 @@ def scenario_create(request):
         # Опциональная привязка к боту
         selected_bot = None
         if selected_bot_id:
+            logger.debug(f'Привязка сценария к боту {selected_bot_id}')
             selected_bot = get_object_or_404(
                 Bot,
                 id=selected_bot_id,
                 owner=request.user
             )
 
-        scenario = Scenario.objects.create(
-            title=title,
-            description=description,
-            bot=selected_bot,
-            owner=request.user
-        )
-
         messages.success(request, f"Сценарий '{title}' создан.")
         if selected_bot:
-            return redirect(f"{reverse('scenario_list')}?bot_id={selected_bot.id}")
+            return redirect(
+                f"{reverse('scenario_list')}?bot_id={selected_bot.id}"
+            )
+        logger.debug('Сценарий создан, возвращение к списку сценариев')
         return redirect('scenario_list')
 
+    logger.debug('GET форма нового сценария')
     return render(request, 'scenarios/form.html', {
         'available_bots': available_bots,
         'bot': bot
@@ -213,6 +216,7 @@ def scenario_update(request, pk):
         description = request.POST.get('description')
 
         if not title:
+            logger.warning('POST сценарий без названия')
             messages.error(request, "Введите название сценария.")
             return render(request, 'scenarios/form.html', {
                 'scenario': scenario,
@@ -234,10 +238,13 @@ def scenario_update(request, pk):
         scenario.bot = new_bot
         scenario.save()
 
+        logger.debug(f'Сценарий обновлён: {scenario}')
         messages.success(request, f"Сценарий '{title}' обновлён.")
 
         if new_bot:
-            return redirect(f"{reverse('scenario_list')}?bot_id={scenario.bot.id}")
+            return redirect(
+                f"{reverse('scenario_list')}?bot_id={scenario.bot.id}"
+            )
         return redirect('scenario_list')
 
     return render(request, 'scenarios/form.html', {
@@ -249,10 +256,10 @@ def scenario_update(request, pk):
 
 @login_required
 def scenario_delete(request, pk):
-    logger.info(f'Удаление сценария {pk}')
     scenario = get_object_or_404(Scenario, pk=pk, owner=request.user)
-    logger.info(f'Сценарий определен: {scenario.title}')
+    logger.debug(f'Сценарий определен: {scenario.title}')
     if request.method == 'POST':
+        logger.debug(f'POST удаление сценария {pk}')
         try:
             name = scenario.title
             scenario.delete()
@@ -262,6 +269,7 @@ def scenario_delete(request, pk):
             messages.error(request, f'Ошибка при удалении сценария: {err}')
             logger.info(f'Ошибка при удалении сценария: {err}')
 
+        logger.debug('Возврат к списку сценариев из вьюхи удаления')
         return redirect('scenario_list')
 
     messages.info(request, "Прямой доступ к удалению запрещён.")
@@ -275,6 +283,7 @@ def step_list(request):
 
     # Если scenario_id есть — фильтруем по нему
     if scenario_id:
+        logger.debug(f'GET все шаги связанные с сценарием {scenario_id}')
         scenario = get_object_or_404(
             Scenario, id=scenario_id, owner=request.user)
         steps = Step.objects.filter(scenario=scenario).order_by('order')
@@ -284,8 +293,7 @@ def step_list(request):
                       )
 
     # Если нет — показываем все шаги пользователя
-    bots = Bot.objects.filter(owner=request.user)
-    # scenarios = Scenario.objects.filter(bot__in=bots)
+    logger.debug('GET все шаги пользователя')
     steps = Step.objects.filter(owner=request.user).select_related(
         'scenario').order_by('scenario__title', 'order')
 
@@ -297,6 +305,7 @@ def step_list(request):
 
 @login_required
 def step_create(request):
+    logger.debug('GET форма нового шага')
     scenario_id = request.GET.get('scenario_id')
 
     # Получаем все доступные сценарии пользователя
@@ -305,9 +314,11 @@ def step_create(request):
 
     # Если сценарий передан в URL — используем его
     if scenario_id:
+        logger.debug(f'Сценарий определен: {scenario_id}')
         scenario = get_object_or_404(
             Scenario, id=scenario_id, owner=request.user)
     else:
+        logger.debug('Сценарий не определен')
         scenario = None  # Пока не выбран
 
     # Вычисляем next_order, если сценарий известен
@@ -316,8 +327,10 @@ def step_create(request):
         max_order = Step.objects.filter(scenario=scenario).aggregate(
             models.Max('order'))['order__max'] or 0
         next_order = max_order + 1
+        logger.debug(f'Порядковый номер следующего сценария: {next_order}')
 
     if request.method == 'POST':
+        logger.debug('POST новый шаг')
         selected_scenario_id = request.POST.get('scenario_id')
         order = request.POST.get('order')
         prompt = request.POST.get('prompt', '').strip()
@@ -326,6 +339,7 @@ def step_create(request):
 
         # Валидация
         if not selected_scenario_id:
+            logger.warning('POST шаг без сценария')
             messages.error(request, "Выберите сценарий.")
             return render(request, 'steps/form.html', {
                 'available_scenarios': available_scenarios,
@@ -339,8 +353,10 @@ def step_create(request):
         try:
             order = int(order)
             if order < 1:
+                logger.error('POST шаг с порядковым номером < 1')
                 raise ValueError
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as err:
+            logger.error(err)
             messages.error(
                 request, "Порядковый номер должен быть положительным числом.")
             return render(request, 'steps/form.html', {
@@ -376,11 +392,18 @@ def step_create(request):
             except Step.DoesNotExist:
                 messages.warning(request, "Указанный следующий шаг не найден.")
 
+        logger.debug(f'Шаг создан: {step}')
         messages.success(
-            request, f"Шаг '{prompt[:50]}...' создан в сценарии '{selected_scenario.title}'.")
-        return redirect(f"{reverse('step_list')}?scenario_id={selected_scenario.id}")
+            request,
+            f"Шаг '{prompt[:50]}...' создан в '\
+                f'сценарии '{selected_scenario.title}'."
+        )
+        return redirect(
+            f"{reverse('step_list')}?scenario_id={selected_scenario.id}"
+        )
 
     # GET-запрос — отображение формы
+    logger.debug('GET форма нового шага')
     return render(request, 'steps/form.html', {
         'available_scenarios': available_scenarios,
         'next_order': next_order,
@@ -395,6 +418,7 @@ def step_update(request, pk):
         owner=request.user).select_related('bot')
 
     if request.method == 'POST':
+        logger.debug(f'POST обновление шага {pk}')
         selected_scenario_id = request.POST.get('scenario_id')
         order = request.POST.get('order')
         prompt = request.POST.get('prompt', '').strip()
@@ -402,6 +426,7 @@ def step_update(request, pk):
         next_step_id = request.POST.get('next_step_id')
 
         if not selected_scenario_id:
+            logger.warning('POST шаг без сценария')
             messages.error(request, "Выберите сценарий.")
             return render(request, 'steps/form.html', {
                 'step': step,
@@ -415,8 +440,10 @@ def step_update(request, pk):
         try:
             step.order = int(order)
             if step.order < 1:
+                logger.error('POST шаг с порядковым номером < 1')
                 raise ValueError
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as err:
+            logger.error(err)
             messages.error(
                 request, "Порядковый номер должен быть положительным числом.")
             return render(request, 'steps/form.html', {
@@ -426,6 +453,7 @@ def step_update(request, pk):
             })
 
         if not prompt:
+            logger.warning('POST шаг без запроса к GigaChat')
             messages.error(request, "Поле 'Запрос к GigaChat' обязательно.")
             return render(request, 'steps/form.html', {
                 'step': step,
@@ -437,6 +465,7 @@ def step_update(request, pk):
         if step.scenario != new_scenario:
             step.scenario = new_scenario
             # Пересчитываем порядок в новом сценарии
+            logger.debug(f'Пересчитываем порядок в новом сценарии')
             max_order = Step.objects.filter(scenario=new_scenario).aggregate(
                 models.Max('order'))['order__max'] or 0
             step.order = max_order + 1
@@ -447,19 +476,26 @@ def step_update(request, pk):
         # Обновляем next_step_id
         if next_step_id:
             try:
+                logger.debug(f'Привязка следующего шага {next_step_id}')
                 next_step = Step.objects.get(
                     id=next_step_id, scenario=new_scenario)
                 step.next_step_id = next_step
             except Step.DoesNotExist:
+                logger.warning('Следующий шаг не выбран')
                 step.next_step_id = None
         else:
+            logger.debug('Следующий шаг не выбран')
             step.next_step_id = None
 
         step.save()
 
+        logger.debug(f'Шаг обновлён: {step}')
         messages.success(request, f"Шаг обновлён: '{prompt[:50]}...'")
-        return redirect(f"{reverse('step_list')}?scenario_id={step.scenario.id}")
+        return redirect(
+            f"{reverse('step_list')}?scenario_id={step.scenario.id}"
+        )
 
+    logger.debug(f'GET форма обновления шага {pk}')
     return render(request, 'steps/form.html', {
         'step': step,
         'scenario': step.scenario,

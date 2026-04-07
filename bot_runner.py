@@ -24,10 +24,7 @@ from api.telegram_bot import start_bot
 from api.models import Bot
 # fmt: on
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,11 +49,11 @@ async def main():
             if not active_bots:
                 logger.warning("Нет активных ботов в базе данных.")
             else:
-                logger.info(
+                logger.debug(
                     f"Найдено {len(active_bots)} активных ботов. Запуск...")
                 for bot in active_bots:
                     if bot not in bot_running.keys():
-                        logger.info(f"Запускаю бота {bot.token}...")
+                        logger.debug(f"Запускаю бота {bot.token}...")
                         app = await start_bot(bot.token)
                         if app:
                             logger.info(f"Бот {bot.name} запущен")
@@ -65,12 +62,12 @@ async def main():
             # Если бот запущен, но дизактивирован, останавливаем его
             for bot in bot_running.keys():
                 if bot not in active_bots:
-                    logger.info(
+                    logger.debug(
                         f"Останавливаю деактивированного бота {bot.token}...")
                     await bot_running[bot].stop()
                     bot_running.pop(bot)
             await asyncio.sleep(60)  # Проверка раз в минуту
-            logger.info("Проверка активности ботов каждую минуту...")
+            logger.debug("Проверка активности ботов каждую минуту...")
 
     except (KeyboardInterrupt, CancelledError):
         # Если выполнение скрипта остановлено с клавиатуры
