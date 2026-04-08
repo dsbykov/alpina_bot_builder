@@ -11,7 +11,7 @@ from .gigachat_client import get_gigachat_response_async
 from .models import Bot, Scenario, Step, UserSession
 from .crypto import decrypt_token
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def find_bot_by_token(token):
@@ -19,13 +19,12 @@ def find_bot_by_token(token):
     all_bots = Bot.objects.all()
     logging.debug(f"Всего ботов в базе: {len(all_bots)}")
     for bot in all_bots:
-        logging.debug(f"bot: {bot}")
-        logging.debug(f"token: {decrypt_token(bot.token)} == {token}")
+        logging.debug(f"Проверяю токен бота: ID = {bot.pk}")
         if decrypt_token(bot.token) == token:
-            logging.debug("bot найден!!!")
+            logging.debug("Бот найден!!!")
             return bot
     else:
-        logging.debug("return None")
+        logging.warning(f"Бот с токеном '{token}' НЕ найден.")
         return None
 
 
@@ -141,6 +140,8 @@ async def delete_session_handler(update: Update, context: CallbackContext):
 
 
 async def help_menu(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    logger.info(f"{user_id} Запросил справку")
     await update.message.reply_text(
         """Доступные команды:
         /help - Вызов этой справочной информации"
@@ -223,8 +224,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     next_step_id = await get_next_step(current_step, scenario)
     if next_step_id:
         # Обновляем сессию пользователя
-        # logging.info("Обновляем сессию пользователя")
-        # logging.debug(f"Пользователь {user_id}, на шаг {next_step_id}")
         await update_session(user_id, bot_instance, next_step_id.pk)
     else:
         # Сценарий завершён — удаляем сессию

@@ -19,17 +19,20 @@ load_dotenv('.env')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+print("LOG_LEVEL =", LOG_LEVEL)
+
+if LOG_LEVEL == "DEBUG":
+    DEBUG = True
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False") == "True"
-print(f"DEBUG = {DEBUG}")
 ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS", "127.0.0.1 localhost 0.0.0.0").split(" ")
 
@@ -41,7 +44,6 @@ if 'localhost' in ALLOWED_HOSTS:
 if '45.155.204.67' in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('45.155.204.67:8000')
 
-print(f"ALLOWED_HOSTS = {ALLOWED_HOSTS}")  # Для логов (можно убрать потом)
 
 # Application definition
 
@@ -137,7 +139,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = '/app/staticfiles'  # ← путь, куда collectstatic копирует всё
+# ← путь, куда collectstatic копирует всё
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # ← папка /static в корне проекта
+]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/app/media'
@@ -225,3 +232,80 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.user_details',
     'bot_builder.pipeline.save_user_details',
 )
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'sensitive': {
+            '()': 'bot_builder.log_filters.SensitiveDataFilter',
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+        # 'json': {
+        #     '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+        #     'format': '%(asctime)s %(name)s %(levelname)s %(message)s'
+        # },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'filters': ['sensitive'],
+            'level': 'INFO',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',  # Авто-ротация
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'maxBytes': 1024*1024*10,  # 10 МБ
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'filters': ['sensitive'],
+            'level': 'DEBUG',
+        },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+            'level': 'ERROR',
+            'include_html': True,
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'api': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'bot_runner': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.security.csrf': {
+            'handlers': ['file', 'mail_admins'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'urllib3.connectionpool': {
+            'level': 'DEBUG',
+            'handlers': ['console', 'file'],
+            'propagate': False,
+        },
+    },
+}

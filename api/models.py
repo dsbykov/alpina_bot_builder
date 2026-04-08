@@ -5,10 +5,7 @@ from cryptography.fernet import Fernet
 import logging
 from .crypto import get_encryption_key, encrypt_token, decrypt_token
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +27,7 @@ class Bot(models.Model):
         """
         Шифрует токен перед сохранением, если он ещё не зашифрован.
         """
-
+        logger.debug(f"Сохраняю данные бота (ID: {self.pk})")
         # Проверяем, новый ли объект или токен уже зашифрован
         if self.pk is None or not self._is_encrypted():
             logger.info(
@@ -117,17 +114,17 @@ class Step(models.Model):
         related_name='next_step',
     )
 
-    class Meta:
-        ordering = ['order']
-        verbose_name = "Шаг"
-        verbose_name_plural = "Шаги"
-
     def __str__(self):
         return f"""
             id: {self.pk}
             Step order: {self.order}
             prompt: {self.prompt}
         """
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Шаг"
+        verbose_name_plural = "Шаги"
 
 
 class UserSession(models.Model):

@@ -16,7 +16,8 @@ urlpatterns = [
     path('scenarios/', scenario_list, name='scenario_list'),
     path('scenarios/create/', scenario_create, name='scenario_create'),
     path('scenarios/<int:pk>/edit/', scenario_update, name='scenario_update'),
-    path('scenarios/<int:pk>/delete/', scenario_delete, name='scenario_delete'),
+    path('scenarios/<int:pk>/delete/', scenario_delete,
+         name='scenario_delete'),
 
     # Steps
     path('steps/', step_list, name='step_list'),

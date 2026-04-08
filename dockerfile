@@ -6,6 +6,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PATH="/home/appuser/.local/bin:${PATH}"
 ENV STATIC_ROOT=/app/staticfiles
 ENV MEDIA_ROOT=/app/media
+ENV LOGS_DIR=/app/logs
 ENV DJANGO_SETTINGS_MODULE=bot_builder.settings
 
 RUN addgroup -g 1000 appgroup && \
@@ -22,6 +23,8 @@ COPY manage.py .
 COPY requirements.txt .
 COPY bot_runner.py .
 COPY ./run.sh .
+
+RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
 
 
 RUN python -m pip install --upgrade pip --no-warn-script-location
