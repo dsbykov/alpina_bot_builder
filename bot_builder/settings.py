@@ -19,15 +19,18 @@ load_dotenv('.env')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG_LEVEL = os.getenv("DEBUG_LEVEL", "INFO")
-print("DEBUG_LEVEL =", DEBUG_LEVEL)
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+print("LOG_LEVEL =", LOG_LEVEL)
+
+if LOG_LEVEL == "DEBUG":
+    DEBUG = True
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ALLOWED_HOSTS = os.environ.get(
@@ -136,7 +139,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = '/app/staticfiles'  # ← путь, куда collectstatic копирует всё
+# ← путь, куда collectstatic копирует всё
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # ← папка /static в корне проекта
+]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/app/media'
@@ -271,7 +279,7 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console', 'file'],
-        'level': DEBUG_LEVEL,
+        'level': LOG_LEVEL,
     },
     'loggers': {
         'django': {
@@ -281,7 +289,7 @@ LOGGING = {
         },
         'api': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': False,
         },
         'bot_runner': {
@@ -295,7 +303,7 @@ LOGGING = {
             'propagate': False,
         },
         'urllib3.connectionpool': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'handlers': ['console', 'file'],
             'propagate': False,
         },

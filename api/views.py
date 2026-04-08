@@ -171,6 +171,7 @@ def scenario_create(request):
     if request.method == 'POST':
         selected_bot_id = request.POST.get('bot_id')
         title = request.POST.get('title')
+        description = request.POST.get('description')
 
         if not title:
             logger.warning('POST сценарий без названия')
@@ -190,6 +191,14 @@ def scenario_create(request):
                 owner=request.user
             )
 
+        Scenario.objects.create(
+            title=title,
+            bot=selected_bot,
+            description=description,
+            owner=request.user
+        )
+
+        logger.debug(f'Сценарий создан: {title}')
         messages.success(request, f"Сценарий '{title}' создан.")
         if selected_bot:
             return redirect(
