@@ -22,8 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 print("LOG_LEVEL =", LOG_LEVEL)
 
-if LOG_LEVEL == "DEBUG":
-    DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
