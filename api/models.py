@@ -20,6 +20,7 @@ class Bot(models.Model):
     # Хранится в зашифрованном виде
     token = models.TextField(verbose_name="Telegram Bot Token", max_length=255)
     is_active = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

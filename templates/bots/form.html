@@ -127,7 +127,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <form method="post" action="{% url 'bot_delete' bot.id %}" style="display: inline;">
+                        <form method="post" action="{% url 'bot_delete' bot.pk %}?confirm=true" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger">Удалить навсегда</button>
                         </form>

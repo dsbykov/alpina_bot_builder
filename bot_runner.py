@@ -52,7 +52,7 @@ async def main():
                 logger.debug(
                     f"Найдено {len(active_bots)} активных ботов. Запуск...")
                 for bot in active_bots:
-                    if bot not in bot_running.keys():
+                    if bot not in list(bot_running.keys()):
                         logger.debug(f"Запускаю бота {bot.token}...")
                         app = await start_bot(bot.token)
                         if app:
@@ -60,7 +60,7 @@ async def main():
                             bot_running.update({bot: app})
 
             # Если бот запущен, но дизактивирован, останавливаем его
-            for bot in bot_running.keys():
+            for bot in list(bot_running.keys()):
                 if bot not in active_bots:
                     logger.debug(
                         f"Останавливаю деактивированного бота {bot.token}...")
@@ -72,7 +72,7 @@ async def main():
     except (KeyboardInterrupt, CancelledError):
         # Если выполнение скрипта остановлено с клавиатуры
         logger.info("Остановка ботов по запросу пользователя...")
-        for app in bot_running.keys():
+        for app in list(bot_running.keys()):
             await bot_running[app].stop()
         logger.info("Все боты остановлены.")
 

@@ -21,9 +21,13 @@ find . -maxdepth 1 -type f -o -type d
 echo "====================="
 
 # Конфигурация логов
+SUPERUSER_FILE="/tmp/superuser_password.txt"
 LOG_DIR="/tmp/logs"
 echo "Создание директории логов: $LOG_DIR"
 mkdir -p "$LOG_DIR"
+
+# Генерация 12-символьного пароля
+PASSWORD=$(openssl rand -base64 12)
 
 echo "Проверяем создание директории"
 if [ ! -d "$LOG_DIR" ]; then
@@ -36,6 +40,11 @@ if [ ! -w "$LOG_DIR" ]; then
     echo "ERROR: No write permission in $LOG_DIR"
     exit 1
 fi
+
+# Функция для безопасного вывода сообщения
+log_secure() {
+    echo "$(date): $1" | tee -a "$LOG_DIR/startup.log"
+}
 
 # echo "Перенаправление вывода в $LOG_DIR/startup.log"
 # exec >> "$LOG_DIR/startup.log" 2>&1
@@ -89,6 +98,13 @@ if not User.objects.filter(username='admin').exists():
         email='$DJANGO_SUPERUSER_EMAIL'
     )
     print("Суперпользователь создан")
+    
+    # Сохраняем пароль в защищённый файл
+    with open('$SUPERUSER_FILE', 'w') as f:
+        f.write(f"Superuser: admin\\nPassword: $PASSWORD\\n")
+    import os
+    os.chmod('$SUPERUSER_FILE', 0o600)  # Только владелец может читать/писать
+    print("Пароль сохранён в $SUPERUSER_FILE (права 600)")
 else:
     print("Суперпользователь уже существует")
 EOF

@@ -20,22 +20,23 @@ COPY ./bot_builder ./bot_builder
 COPY ./data ./data
 COPY ./templates ./templates
 COPY manage.py .
-COPY requirements.txt .
 COPY bot_runner.py .
 COPY ./run.sh .
+COPY pyproject.toml .
 
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
 
+# Установка uv и зависимостей
+RUN pip install --no-cache-dir uv
+RUN uv pip install --system -r pyproject.toml
 
-RUN python -m pip install --upgrade pip --no-warn-script-location
-RUN pip install --no-cache-dir -r requirements.txt --no-warn-script-location
 
 RUN chown -R appuser:appgroup /app
 
 USER appuser
 
 # Сбор статики
-RUN python manage.py collectstatic --noinput
+RUN uv python manage.py collectstatic --noinput
 
 
 EXPOSE 8000
