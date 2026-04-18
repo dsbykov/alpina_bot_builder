@@ -141,9 +141,7 @@ STATIC_URL = 'static/'
 # ← путь, куда collectstatic копирует всё
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # ← папка /static в корне проекта
-]
+STATICFILES_DIRS = []
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/app/media'
