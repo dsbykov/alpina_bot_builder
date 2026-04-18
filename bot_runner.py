@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 @sync_to_async
 def get_active_bots():
-    return list(Bot.objects.filter(is_active=True))
+    return list(Bot.objects.filter(is_active=True, is_deleted=False))
 
 
 async def main():
