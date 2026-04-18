@@ -168,7 +168,7 @@ REST_FRAMEWORK = {
 }
 
 # Безопасность при работе за прокси
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "prod")
 print('DEBUG LOG: ENVIRONMENT =', ENVIRONMENT)
 
 
