@@ -80,6 +80,36 @@ if [ -z "$DJANGO_SECRET_KEY" ]; then
      echo "Ошибка: DJANGO_SECRET_KEY не задан!"
 fi
 
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" | tee -a "$LOG_DIR/startup.log"
+}
+
+log "DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE"
+log "ENVIRONMENT=$ENVIRONMENT"
+
+# Убедимся, что Django может импортироваться
+python -c "import django; print('Django imported')" || {
+    log "❌ Ошибка импорта Django"
+    exit 1
+}
+
+# === Ожидание БД ===
+log "Ожидание подключения к базе данных..."
+until python <<EOF
+import sys
+try:
+    from django.db import connections
+    connections['default'].ensure_connection()
+    print("✅ Подключение к БД установлено")
+    sys.exit(0)
+except Exception as e:
+    print(f"❌ Ошибка подключения: {e}")
+    sys.exit(1)
+EOF
+do
+    sleep 3
+done
+
 # 1. Миграции
 echo "Выполняю миграции..."
 python manage.py migrate --noinput || {
