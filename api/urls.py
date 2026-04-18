@@ -1,6 +1,6 @@
 from django.urls import path
 from api.views import (
-    bot_list, bot_create, bot_update, bot_delete,
+    bot_list, bot_create, bot_update, bot_delete, bot_restore,
     scenario_list, scenario_create, scenario_update, scenario_delete,
     step_list, step_create, step_update, step_delete,
 )
@@ -8,9 +8,10 @@ from api.views import (
 urlpatterns = [
     # Bots
     path('bots/', bot_list, name='bot_list'),
-    path('bot/create/', bot_create, name='bot_create'),
+    path('bots/create/', bot_create, name='bot_create'),
     path('bots/<int:pk>/edit/', bot_update, name='bot_update'),
     path('bots/<int:pk>/delete/', bot_delete, name='bot_delete'),
+    path('bots/<int:pk>/restore/', bot_restore, name='bot_restore'),
 
     # Scenarios
     path('scenarios/', scenario_list, name='scenario_list'),

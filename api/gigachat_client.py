@@ -1,16 +1,19 @@
 import os
 import logging
 
+from tenacity import retry, stop_after_attempt
 from gigachat import GigaChatAsyncClient
 
 logger = logging.getLogger(__name__)
 
 client = GigaChatAsyncClient(credentials=os.getenv("GIGACHAT_AUTH_KEY"),
                              verify_ssl_certs=False)
-logger.debug(f"Создан клиент GigaChat")
+logger.debug("Создан клиент GigaChat")
 
 
+@retry(stop=stop_after_attempt(3))
 async def get_gigachat_response_async(prompt: str) -> str:
+    logger.debug(f"Запрос в ГигаЧат: {prompt}")
     try:
         response = await client.achat(prompt)
         return response.choices[0].message.content

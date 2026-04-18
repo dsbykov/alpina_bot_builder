@@ -34,8 +34,8 @@ class BotListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         # Админ видит всё, обычный пользователь — только свои
         if self.request.user.is_staff:
-            return Bot.objects.all()
-        return Bot.objects.filter(owner=self.request.user)
+            return Bot.objects.filter(is_deleted=False)
+        return Bot.objects.filter(owner=self.request.user, is_deleted=False)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -85,7 +85,7 @@ class StepListCreateView(generics.ListCreateAPIView):
 @login_required
 def bot_list(request):
     logger.debug('GET все боты пользователя')
-    bots = Bot.objects.filter(owner=request.user)
+    bots = Bot.objects.filter(owner=request.user, is_deleted=False)
     return render(request, 'bots/list.html', {'bots': bots})
 
 
@@ -123,11 +123,30 @@ def bot_delete(request, pk):
     bot = get_object_or_404(Bot, pk=pk, owner=request.user)
     if request.method == 'POST':
         logger.debug(f'POST удаление бота {pk}')
+        confirm = request.POST.get('confirm') or request.GET.get('confirm')
+        if confirm != 'true':
+            messages.warning(request, "Для удаления требуется подтверждение.")
+            logger.debug(f'Отказ в удалении бота {pk}')
+            return redirect('bot_update', pk=pk)  # вернёмся к редактированию
         name = bot.name
-        bot.delete()
+        bot.is_deleted = True
+        bot.save()
         messages.success(request, f'Бот "{name}" удалён.')
+        logger.info(f'Бот "{name}" удалён.')
         return redirect('bot_list')
-    logger.warning(f'Попытка удалить бота методом отличным от POST.')
+    logger.warning('Попытка удалить бота методом отличным от POST.')
+    return redirect('bot_list')
+
+
+@login_required
+def bot_restore(request, pk):
+    bot = get_object_or_404(Bot, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        logger.debug(f'POST восстановление бота {pk}')
+        bot.is_deleted = False
+        bot.save()
+        messages.success(request, f'Бот "{bot.name}" восстановлен.')
+        logger.info(f'Бот "{bot.name}" восстановлен.')
     return redirect('bot_list')
 
 
@@ -474,7 +493,7 @@ def step_update(request, pk):
         if step.scenario != new_scenario:
             step.scenario = new_scenario
             # Пересчитываем порядок в новом сценарии
-            logger.debug(f'Пересчитываем порядок в новом сценарии')
+            logger.debug('Пересчитываем порядок в новом сценарии')
             max_order = Step.objects.filter(scenario=new_scenario).aggregate(
                 models.Max('order'))['order__max'] or 0
             step.order = max_order + 1
