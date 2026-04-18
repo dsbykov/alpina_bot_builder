@@ -12,6 +12,8 @@ ENV DJANGO_SETTINGS_MODULE=bot_builder.settings
 RUN addgroup -g 1000 appgroup && \
     adduser -D -u 1000 -G appgroup appuser
 
+# Установка системных пакетов: openssl, ca-certificates
+RUN apk add --no-cache openssl ca-certificates
 
 WORKDIR /app
 
